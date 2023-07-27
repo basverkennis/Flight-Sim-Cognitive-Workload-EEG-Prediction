@@ -6,7 +6,7 @@
 In this research, we aim to investigate the predictive potential of frontal-parietal connectivity in determining cognitive workload during flight simulation. We utilize EEG connectivity features to analyze the brain's electrical activity and its relationship to cognitive workload levels.
 
 ### Code and Features
-We employ Support Vector Machines (SVMs) for predictive modeling, utilizing feature selection techniques to identify the most important features. The feature set includes both Phase Locking Value (PLV) features and absolute or relative power spectral features.
+We employ Support Vector Machines (SVMs) for predictive modeling, utilizing feature selection techniques to identify the most important features. The feature set includes both Phase Locking Value (PLV) features and absolute power spectral features.
 
 ### Repository Structure
 - data/: This directory contains the necessary datasets used in the study.
