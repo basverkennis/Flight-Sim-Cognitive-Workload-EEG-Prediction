@@ -28,7 +28,7 @@ def load_data(directory, output_fig):
     
     Desktop_plv, VR_plv = [], []
     
-    files = sorted(os.listdir(directory))[1:] # index from 1 because Mac has .DS_Store file
+    files = sorted(os.listdir(directory))
     
     for i in range(0, len(files), 2):  # Iterate through the files with a step of 2
         if i + 1 < len(files):  # Ensure there are two more files available            
@@ -192,13 +192,10 @@ def plv_function(data, filename, output_fig):
                                  fontsize_colorbar=10, colorbar_size=0.75, colorbar_pos=(0, 0.7), fontsize_title=25, title=plot_titles[i], 
                                  interactive=True, show=False, vmin=0, vmax=1)
         
-        # Save the figure as a PNG file
         fig_name = f'{fig_names[i]}.png'
         fig_path = os.path.join(output_fig, fig_name)
         plt.tight_layout()
         plt.savefig(fig_path, dpi=300)
-        
-        # Clear the current figure and release the memory
         plt.clf()
     
     return data_alpha, data_beta, data_theta
@@ -208,7 +205,7 @@ def read_FrequencySpectrumFeatures(directory):
     baseline_Desktop, baseline_VR, trial_Desktop, trial_VR = [], [], [], []
     
     # loading the spectral features
-    for subdir in sorted(os.listdir(directory))[1:]: # index from 1 because Mac has .DS_Store file
+    for subdir in sorted(os.listdir(directory)):
         for file in sorted(os.listdir(os.path.join(directory, subdir))):
             df = pd.read_csv(os.path.join(directory, subdir, file))
                         
@@ -230,7 +227,6 @@ def read_FrequencySpectrumFeatures(directory):
 def combine_features(Desktop_freq, VR_freq, Desktop_plv, VR_plv):
     
     features_Desktop, features_VR = [], []
-
     # Combine all the PLV features and Spectral features together
     for plv_Desktop, plv_VR, alpha_Desktop, alpha_VR, beta_Desktop, beta_VR, theta_Desktop, theta_VR in zip(Desktop_plv, VR_plv, 
                                                                                                             Desktop_freq[0].iterrows(), VR_freq[0].iterrows(),
@@ -253,11 +249,15 @@ def binarizing_labels(Desktop, VR, labels, output_dir):
     Desktop_labels = pd.read_csv(labels, sep=',')['NASA-TLX DESKTOP'].drop(44)
     VR_labels = pd.read_csv(labels, sep=',')['NASA-TLX VR'].drop(44)
 
-    # Threshold for workload: low workload <= 50, high workload > 50
-    thresh = 50
+    # Calculate the median
+    median = np.median(Desktop_labels)
     # Assign binary labels to each matrix in the list
-    data_Desktop = [{'X': data, 'label': np.array([0])} if label <= thresh else {'X': data, 'label': np.array([1])} for data, label in zip(Desktop, Desktop_labels)]
-    data_VR = [{'X': data, 'label': np.array([0])} if label <= thresh else {'X': data, 'label': np.array([1])} for data, label in zip(VR, VR_labels)]
+    data_Desktop = [{'X': data, 'label': np.array([0])} if label <= median else {'X': data, 'label': np.array([1])} for data, label in zip(Desktop, Desktop_labels)]
+    
+    # Calculate the median
+    median = np.median(VR_labels)
+    # Assign binary labels to each matrix in the list
+    data_VR = [{'X': data, 'label': np.array([0])} if label <= median else {'X': data, 'label': np.array([1])} for data, label in zip(VR, VR_labels)]
     
     for participant, Desktop, VR in zip(range(1,52), data_Desktop, data_VR):
         # assign the original names to the files, because participant 45 got deleted
@@ -272,20 +272,14 @@ def binarizing_labels(Desktop, VR, labels, output_dir):
         np.savez(os.path.join(output_dir, 'DESKTOP', filename_Desktop), X=Desktop['X'], Y=Desktop['label'])
         np.savez(os.path.join(output_dir, 'VR', filename_VR), X=VR['X'], Y=VR['label'])
 
-directory = '/Users/basverkennis/Desktop/Flight-Sim-Cognitive-Workload-EEG-Prediction/raw/Preprocessed_EEG_files'
-labels = '/Users/basverkennis/Desktop/Flight-Sim-Cognitive-Workload-EEG-Prediction/raw/Table_logsandqrs.csv'
-directory_frequency_bands = '/Users/basverkennis/Desktop/Flight-Sim-Cognitive-Workload-EEG-Prediction/raw/Absolute_EEG_power_values'
-output_dir = '/Users/basverkennis/Desktop/Flight-Sim-Cognitive-Workload-EEG-Prediction/data'
-output_fig = '/Users/basverkennis/Desktop/Flight-Sim-Cognitive-Workload-EEG-Prediction/results/connectivity_plots_per_sample'
-
-# directory = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/raw/Preprocessed_EEG_files'
-# labels = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/raw/Table_logsandqrs.csv'
-# directory_frequency_bands = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/raw/Absolute_EEG_power_values'
-# output_dir = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/data'
-# output_fig = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/results/connectivity_plots_per_sample'
+directory = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/raw/Preprocessed_EEG_files'
+labels = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/raw/Table_logsandqrs.csv'
+directory_frequency_bands = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/raw/Absolute_EEG_power_values'
+output_dir = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/data'
+output_fig = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/results/connectivity_plots_per_sample'
 
 # loading the preprocessed EEG recording data to calculate the plv values
-Desktop_plv, VR_plv = load_data(directory, output_fig)
+Desktop_plv, VR_plv = load_data(directory, output_fig) 
 
 # load the absolute or relative spectral power features
 normalized_Desktop, normalized_VR = read_FrequencySpectrumFeatures(directory_frequency_bands)
