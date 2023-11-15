@@ -20,6 +20,4 @@ If you find this work or the code provided in this repository useful for your re
 ### Contact
 For any questions or inquiries regarding this repository, please reach out to us via email at bas.verkennis.code@gmail.com.
 
-We are grateful for your interest in our work and hope that it contributes to the ongoing advancements in predicting cognitive workload by leveraging EEG connectivity features.
-
 <img src="https://github.com/basverkennis/Flight-Sim-Cognitive-Workload-EEG-Prediction/blob/main/logo.jpeg" alt="Tilburg University Logo" width="20%" padding="5%">
