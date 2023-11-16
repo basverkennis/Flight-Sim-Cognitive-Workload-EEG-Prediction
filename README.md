@@ -9,10 +9,10 @@ In this research, we aim to investigate the predictive potential of frontal-pari
 We employ Support Vector Machines (SVMs) for predictive modeling, and we utilize the feature selection technique, Recursive Feature Selection (RFE), to identify the most important features. The feature set includes both Phase Locking Value (PLV) features, and (relative) Spectral Power features.
 
 ### Repository Structure
-- data/: This directory contains the necessary datasets used in the study.
-- raw/: This directory contains the raw datasets.
+- raw/: Stores the datasets used in this study. The dataset itself is not available on GitHub.
+- data/: Stores the feature sets per participant in subdirectories (VR & Desktop) as .npz files.
 - code/: This directory contains the code used for data preprocessing, feature selection, SVM modeling, and evaluation.
-- results/: This directory contains the results obtained from the experiments.
+- results/: This directory contains plots obtained from the experiments.
 
 ### Citation
 If you find this work or the code provided in this repository useful for your research, please consider citing our paper once it becomes available. The citation details will be provided in the paper itself.
