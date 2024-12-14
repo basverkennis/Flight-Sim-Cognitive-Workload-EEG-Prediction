@@ -1,4 +1,4 @@
-# Predicting Cognitive Workload in Flight Simulations using EEG Spectral and Connectivity Features
+# Predicting Workload in Virtual Flight Simulations using EEG Spectral and Connectivity Features
 
 **Note: The publication link for the paper is not available yet.**
 
