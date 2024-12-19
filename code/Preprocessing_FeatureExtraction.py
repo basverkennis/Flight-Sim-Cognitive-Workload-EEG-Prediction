@@ -6,6 +6,8 @@ from scipy import io
 import matplotlib.pyplot as plt
 import mne_connectivity
 from mne_connectivity.viz import plot_connectivity_circle
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
 import warnings
 # Suppress FutureWarning for deprecated frame.append method
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -28,7 +30,6 @@ def LoadData_ProcessData_FeatureExtraction(directory, output_fig):
     
     Desktop_plv, VR_plv = [], []
     files = sorted(os.listdir(directory))
-    
     for i in range(0, len(files), 2): 
         if i + 1 < len(files):
             
@@ -38,10 +39,16 @@ def LoadData_ProcessData_FeatureExtraction(directory, output_fig):
             data_Desktop = io.loadmat(os.path.join(directory, Desktop))
             baseline_latency, test_latency = extract_events(data_Desktop)
             data_baseline, data_trial = extract_data(baseline_latency, test_latency, data_Desktop)
-            data_Desktop = normalize_data(data_baseline, data_trial)
-            filename = split_filename(Desktop)
-            plv_alpha, plv_beta, plv_theta = plv_function(data_Desktop, filename, output_fig)
-            Desktop_plv.append([plv_alpha, plv_beta, plv_theta])
+            
+            filename = split_filename(Desktop) + '_baseline'
+            baseline_plv_alpha, baseline_plv_beta, baseline_plv_theta = plv_function(data_baseline, filename, output_fig)
+            filename = split_filename(Desktop) + '_trial'
+            trial_plv_alpha, trial_plv_beta, trial_plv_theta = plv_function(data_trial, filename, output_fig)
+            data_Desktop_alpha = normalize_data(baseline_plv_alpha, trial_plv_alpha)
+            data_Desktop_beta = normalize_data(baseline_plv_beta, trial_plv_beta)
+            data_Desktop_theta = normalize_data(baseline_plv_theta, trial_plv_theta)
+            
+            Desktop_plv.append([data_Desktop_alpha, data_Desktop_beta, data_Desktop_theta])
             
             # VR condition
             VR = files[i + 1]
@@ -49,10 +56,16 @@ def LoadData_ProcessData_FeatureExtraction(directory, output_fig):
             data_VR = io.loadmat(os.path.join(directory, VR))
             baseline_latency, test_latency = extract_events(data_VR)
             data_baseline, data_trial = extract_data(baseline_latency, test_latency, data_VR)
-            data_VR = normalize_data(data_baseline, data_trial)
-            filename = split_filename(VR)
-            plv_alpha, plv_beta, plv_theta = plv_function(data_VR, filename, output_fig)
-            VR_plv.append([plv_alpha, plv_beta, plv_theta])
+            
+            filename = split_filename(VR) + '_baseline'
+            baseline_plv_alpha, baseline_plv_beta, baseline_plv_theta = plv_function(data_baseline, filename, output_fig)
+            filename = split_filename(VR) + '_trial'
+            baseline_plv_alpha, baseline_plv_beta, baseline_plv_theta = plv_function(data_baseline, filename, output_fig)
+            data_VR_alpha = normalize_data(baseline_plv_alpha, trial_plv_alpha)
+            data_VR_beta = normalize_data(baseline_plv_beta, trial_plv_beta)
+            data_VR_theta = normalize_data(baseline_plv_theta, trial_plv_theta)
+            
+            VR_plv.append([data_VR_alpha, data_VR_beta, data_VR_theta])
     
     return Desktop_plv, VR_plv
 
@@ -72,7 +85,7 @@ def extract_data(baseline_latency, test_latency, data):
     return data_baseline, data_trial
     
 def normalize_data(data_baseline, data_trial):
-    data = data_trial - np.mean(data_baseline)
+    data = data_trial - np.mean(np.array([data_trial, data_baseline]), axis=0)
     return data
 
 def plv_function(data, filename, output_fig):
@@ -147,11 +160,16 @@ def plv_function(data, filename, output_fig):
     
     return data_alpha, data_beta, data_theta
 
-def Load_FrequencySpectrumFeatures(directory):
+def Load_SpectralPowerFeatures(directory):
+    
+    '''
+    Loads and normalizes spectral power features for Desktop and VR conditions.
+    '''
     
     participants_to_drop = [2, 8, 37]
     baseline_Desktop, baseline_VR, trial_Desktop, trial_VR = [], [], [], []
-    for subdir in sorted(os.listdir(directory)):
+    for subdir in sorted(os.listdir(directory))[1:]:
+    # for subdir in sorted(os.listdir(directory))[1:]:
         for file in sorted(os.listdir(os.path.join(directory, subdir))):
             
             print('Subdir: ', subdir) 
@@ -172,10 +190,14 @@ def Load_FrequencySpectrumFeatures(directory):
     # baseline normalization for the (relative) spectral power features
     normalized_Desktop = [normalize_data(baseline, trial) for baseline, trial in zip(baseline_Desktop, trial_Desktop)]
     normalized_VR = [normalize_data(baseline, trial) for baseline, trial in zip(baseline_VR, trial_VR)]
-    
+
     return normalized_Desktop, normalized_VR
 
 def CombineFeatures(Desktop_freq, VR_freq, Desktop_plv, VR_plv):
+    
+    '''
+    Combines spectral power features and Phase Locking Value (PLV) features, returning combined feature sets for Desktop and VR conditions per participant.
+    '''
     
     features_Desktop, features_VR = [], []
     for plv_Desktop, plv_VR, alpha_Desktop, alpha_VR, beta_Desktop, beta_VR, theta_Desktop, theta_VR in zip(Desktop_plv, 
@@ -205,15 +227,49 @@ def CombineFeatures(Desktop_freq, VR_freq, Desktop_plv, VR_plv):
     
     return features_Desktop, features_VR
 
-def BinarizingLabels_SaveFile(Desktop, VR, labels, output_dir):
+def Residuals_NASATLXSubset_BinarizingLabels_SaveFile(Desktop, VR, labels, labels_Desktop, labels_VR, output_dir):
     '''
-    Transforming continous labels to binary labels. 0 = low workload, 1 = high workload.
+    - Transforms continuous NASA-TLX scores into binary labels (0 = low workload, 1 = high workload).
+    - Computes residuals based on a mixed-effects model, accounting for condition, task, and participant effects.
+    - Saves features and binary labels per participant and condition.
     '''
-    participants_to_drop = [2, 8, 37]
-    Desktop_labels = pd.read_csv(labels, sep=',')['NASA-TLX DESKTOP'].drop(participants_to_drop)
-    VR_labels = pd.read_csv(labels, sep=',')['NASA-TLX VR'].drop(participants_to_drop)
+    Desktop_labels = pd.read_csv(labels_Desktop, sep=',', header=None) # dropped participants = [2, 8, 37]
+    VR_labels = pd.read_csv(labels_VR, sep=',', header=None) # dropped participants = [2, 8, 37]
     
-    median = np.median(np.concatenate((Desktop_labels,VR_labels)))
+    # Aggregation of Subscale ratings NASA-TLX workload
+    temp_df_Desktop = np.mean([Desktop_labels[0], Desktop_labels[1], Desktop_labels[3], Desktop_labels[4]], axis=0)
+    temp_df_VR = np.mean([VR_labels[0], VR_labels[1], VR_labels[3], VR_labels[4]], axis=0)
+    new_df = pd.concat([pd.DataFrame(temp_df_Desktop), pd.DataFrame(temp_df_VR)], axis=0).reset_index(drop=True)
+    new_df.columns = ['Workload']
+
+    participants_to_drop = [2, 8, 37]
+    df = pd.read_csv(labels, sep=',').drop(participants_to_drop)
+    tasks = df['ppNumber'].str.split('_')
+    task_order = tasks.apply(lambda x: x[2])
+    task = task_order.apply(lambda x: x[2:])
+    task = pd.DataFrame({'flight_task': task.reset_index(drop=True)})
+
+    replacement = {'01': '02', '02': '01'}
+    task2 = pd.DataFrame()
+    task2['flight_task'] = task['flight_task'].replace(replacement)
+    mapping = {'01': 'speed change', '02': 'medium turn'}
+
+    new_df['Condition'] = ['DESKTOP'] * 49 + ['VR'] * 49
+    new_df['Participant'] = list(range(1, 50)) * 2
+    temp_df = pd.DataFrame()
+    temp_df = pd.concat((task['flight_task'].map(mapping), task2['flight_task'].map(mapping)),axis=0).reset_index(drop=True)
+    new_df['Flight_Task'] = temp_df
+    
+    # Fit a mixed-effects model with random effects of Participant
+    model_random = smf.mixedlm("Workload ~ Condition + Flight_Task", new_df, groups=new_df["Participant"], re_formula="~1").fit()
+    new_df['Residuals'] = model_random.resid
+    
+    median = np.median(new_df['Residuals'])
+    
+    print(median)
+    
+    Desktop_labels = new_df['Residuals'].iloc[:48]
+    VR_labels = new_df['Residuals'].iloc[48:]
     data_Desktop = [{'X': data, 'label': np.array([0])} if label <= median else {'X': data, 'label': np.array([1])} for data, label in zip(Desktop, Desktop_labels)]
     data_VR = [{'X': data, 'label': np.array([0])} if label <= median else {'X': data, 'label': np.array([1])} for data, label in zip(VR, VR_labels)]
     
@@ -225,6 +281,8 @@ def BinarizingLabels_SaveFile(Desktop, VR, labels, output_dir):
 
 directory = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/raw/Preprocessed_EEG_files'
 labels = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/raw/Table_logsandqrs.csv'
+labels_Desktop = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/raw/subworkload_Desktop.csv'
+labels_VR = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/raw/subworkload_VR.csv'
 directory_frequency_bands = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/raw/Absolute_EEG_power_values'
 output_dir = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/data'
 output_fig = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/results/connectivity_plots_per_sample'
@@ -233,10 +291,9 @@ output_fig = '/Flight-Sim-Cognitive-Workload-EEG-Prediction/results/connectivity
 Desktop_plv, VR_plv = LoadData_ProcessData_FeatureExtraction(directory, output_fig) 
 
 # load the (absolute) spectral power features and output (relative) spectral power features
-normalized_Desktop, normalized_VR = Load_FrequencySpectrumFeatures(directory_frequency_bands)
+normalized_Desktop, normalized_VR = Load_SpectralPowerFeatures(directory_frequency_bands)
 
 # combine both sets of features (Connectivity (PLV) features + (relative) Spectral Power features)
 Desktop, VR = CombineFeatures(normalized_Desktop, normalized_VR, Desktop_plv, VR_plv)
 
-# binarize the labels and save the file
-BinarizingLabels_SaveFile(Desktop, VR, labels, output_dir)
+Residuals_NASATLXSubset_BinarizingLabels_SaveFile(Desktop, VR, labels, labels_Desktop, labels_VR, output_dir)
