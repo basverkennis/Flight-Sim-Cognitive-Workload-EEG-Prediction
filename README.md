@@ -1,4 +1,4 @@
-# Predicting Workload in Virtual Flight Simulations using EEG Spectral and Connectivity Features Features
+# Predicting Workload in Virtual Flight Simulations using EEG Spectral and Connectivity Features
 
 **Note: Our paper, "Predicting Workload in Virtual Flight Simulations using EEG Spectral and Connectivity Features," has been accepted for presentation at the 7th IEEE International Conference on Artificial Intelligence & eXtended and Virtual Reality, as part of the special session on AI-driven Brain-Computer Interfaces (BCI) with VR/AR: Current Innovations and Future Directions. The camera-ready version has been submitted and will be presented at the conference, followed by publication in the proceedings.
 
