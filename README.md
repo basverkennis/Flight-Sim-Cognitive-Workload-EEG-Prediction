@@ -23,7 +23,7 @@ For any questions or inquiries regarding this repository, please reach out to us
 <img src="https://github.com/basverkennis/Flight-Sim-Cognitive-Workload-EEG-Prediction/blob/main/logo.jpeg" alt="Tilburg University Logo" width="20%" padding="5%">
 
 ### Citation
-If you find this work or the code provided in this repository useful for your research, please consider citing our paper once it becomes available. The citation in BibTeX format is:
+If you find this work or the code provided in this repository useful for your research, please consider citing:
 
 ```bibtex
 @INPROCEEDINGS{Verkennis2025WorkloadPredictionBCIxVR,
